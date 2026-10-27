@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spacecraft Discoveries</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mission-control log. A clickable Sun-to-Pluto strip filters a launch-ordered grid of mission cards. Deliberately single dark theme (space). */
+:root{
+  --bg:#0d1024;
+  --panel:#161a36;
+  --panel-2:#1d2245;
+  --line:#2c3263;
+  --fg:#eef0ff;
+  --muted:#aeb3da;
+  --sun:#ffb547;
+  --sun-ink:#1a1206;
+  --display:"Chakra Petch", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --p-sun:#ffb547; --p-mercury:#a9a9a9; --p-venus:#e6c27a; --p-earth:#4d8fe0; --p-mars:#d4562a;
+  --p-jupiter:#d7a77a; --p-saturn:#e8cf8a; --p-uranus:#9fe3e8; --p-neptune:#5277ee; --p-pluto:#d9b8a0;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+img{max-width:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+a{color:var(--sun)}
+a:hover{color:var(--fg)}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+
+/* Header */
+header{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(1.5px 1.5px at 8% 20%, #ffffff 50%, transparent 51%),
+    radial-gradient(1px 1px at 22% 70%, #ffffff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 37% 35%, #cfd6ff 50%, transparent 51%),
+    radial-gradient(1px 1px at 51% 80%, #ffffff 50%, transparent 51%),
+    radial-gradient(1px 1px at 64% 15%, #ffffff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 78% 55%, #ffffff 50%, transparent 51%),
+    radial-gradient(1px 1px at 91% 30%, #cfd6ff 50%, transparent 51%),
+    radial-gradient(1px 1px at 96% 85%, #ffffff 50%, transparent 51%);
+  border-bottom:1px solid var(--line);
+}
+header .wrap{padding-block:56px 40px;display:grid;gap:28px}
+.eyebrow{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--sun)}
+header h1{font-size:clamp(40px, 7vw, 76px);font-weight:700;letter-spacing:-.01em}
+.lede{max-width:62ch;color:var(--muted);font-size:19px;margin:0}
+.stats{display:flex;flex-wrap:wrap;gap:12px 40px;margin:0;padding:0;list-style:none}
+.stats li{display:grid;gap:2px}
+.stats b{font-family:var(--display);font-size:30px;font-weight:600;color:var(--fg);font-variant-numeric:tabular-nums}
+.stats span{font-size:14px;color:var(--muted)}
+
+/* Planet strip */
+.strip-wrap{border-bottom:1px solid var(--line);background:var(--panel)}
+.strip-wrap .wrap{padding-block:20px;display:grid;gap:12px}
+.strip-label{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.strip{display:flex;align-items:flex-end;gap:6px;overflow-x:auto;padding-bottom:6px}
+.pbtn{
+  flex:0 0 auto;display:grid;justify-items:center;gap:8px;min-width:68px;min-height:44px;
+  padding:10px 8px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--fg);
+  font-family:var(--body);font-size:14px;cursor:pointer;
+}
+.pbtn:hover{background:var(--panel-2)}
+.pbtn[aria-pressed="true"]{background:var(--panel-2);border-color:var(--sun)}
+.pbtn .orb{border-radius:50%;display:block}
+.pbtn .cnt{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pbtn.all .orb{width:22px;height:22px;border:2px dashed var(--muted)}
+.showing{font-size:15px;color:var(--muted);margin:0}
+.showing b{color:var(--fg)}
+
+/* Missions */
+main .wrap{padding-block:40px 24px;display:grid;gap:56px}
+.sec-head{display:grid;gap:8px;max-width:70ch}
+.sec-head h2{font-size:clamp(28px, 4vw, 40px);font-weight:600}
+.sec-head p{margin:0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(min(100%, 340px), 1fr));gap:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.meta{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.04em;display:flex;flex-wrap:wrap;gap:4px 14px}
+.meta .yr{color:var(--sun);font-weight:500}
+.card h3{font-size:26px;font-weight:600}
+.tagline{margin:-6px 0 0;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:3px 10px 3px 6px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line)}
+.chip i{width:12px;height:12px;border-radius:50%;display:block}
+.found h4{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:500}
+.found ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.fact{margin-top:auto;background:var(--panel-2);border-radius:10px;padding:12px 14px;font-size:15px}
+.fact b{color:var(--sun);font-family:var(--display);font-weight:600;letter-spacing:.02em}
+
+/* Best table */
+.table-box{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--panel)}
+tr:last-child td{border-bottom:0}
+td.pl{white-space:nowrap;font-weight:700}
+td.pl i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+td.ms{font-family:var(--display);font-size:18px;font-weight:600;white-space:nowrap}
+
+/* On the way */
+.way{display:grid;grid-template-columns:repeat(auto-fill, minmax(min(100%, 300px), 1fr));gap:16px}
+.way article{border:1px dashed var(--line);border-radius:14px;padding:18px;display:grid;gap:6px}
+.way h3{font-size:21px;font-weight:600}
+.way p{margin:0;color:var(--muted);font-size:15px}
+.way .meta{font-size:12px}
+
+footer{border-top:1px solid var(--line);margin-top:24px}
+footer .wrap{padding-block:28px 40px;color:var(--muted);font-size:14px;display:grid;gap:6px}
+
+@media (max-width:520px){
+  body{font-size:16px}
+  .card{padding:18px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .card{transition:transform .2s ease, border-color .2s ease}
+  .card:hover{transform:translateY(-2px);border-color:#3d4482}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Mission log · 1957 to today</div>
+    <h1>Spacecraft Discoveries</h1>
+    <p class="lede">Since 1957, people have sent robots to every planet in our solar system. Here is where each spacecraft went, what it found, and a fun fact about every one. Tap a planet below to see only the missions that explored it.</p>
+    <ul class="stats" id="stats"></ul>
+  </div>
+</header>
+
+<div class="strip-wrap">
+  <div class="wrap">
+    <div class="strip-label">Pick a destination, from the Sun outward</div>
+    <div class="strip" id="strip" role="group" aria-label="Filter missions by destination"></div>
+    <p class="showing" id="showing" aria-live="polite"></p>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <section aria-labelledby="missions-h">
+      <div class="sec-head" style="margin-bottom:24px">
+        <h2 id="missions-h">The missions</h2>
+        <p>Listed in the order they launched.</p>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+
+    <section aria-labelledby="best-h">
+      <div class="sec-head" style="margin-bottom:20px">
+        <h2 id="best-h">The best explorer for each planet</h2>
+        <p>Many spacecraft visited the same planets. These are the ones that taught us the most.</p>
+      </div>
+      <div class="table-box">
+        <table>
+          <thead><tr><th scope="col">Planet</th><th scope="col">Spacecraft</th><th scope="col">Why it wins</th></tr></thead>
+          <tbody>
+            <tr><td class="pl"><i style="background:var(--p-mercury)"></i>Mercury</td><td class="ms">MESSENGER</td><td>Orbited for 4 years, mapped the whole planet and found ice in dark craters at the poles.</td></tr>
+            <tr><td class="pl"><i style="background:var(--p-venus)"></i>Venus</td><td class="ms">Magellan</td><td>Used radar to see through the clouds and mapped about 98% of the surface.</td></tr>
+            <tr><td class="pl"><i style="background:var(--p-earth)"></i>Earth</td><td class="ms">Landsat</td><td>Has photographed Earth's land for over 50 years, so we can see how it changes.</td></tr>
+            <tr><td class="pl"><i style="background:var(--p-mars)"></i>Mars</td><td class="ms">Curiosity</td><td>Found that Mars once had a lake that could have supported tiny life.</td></tr>
+            <tr><td class="pl"><i style="background:var(--p-jupiter)"></i>Jupiter</td><td class="ms">Galileo</td><td>Orbited for 8 years, dropped a probe into Jupiter and found hints of an ocean on Europa.</td></tr>
+            <tr><td class="pl"><i style="background:var(--p-saturn)"></i>Saturn</td><td class="ms">Cassini</td><td>Studied Saturn for 13 years, found geysers on Enceladus and landed a probe on Titan.</td></tr>
+            <tr><td class="pl"><i style="background:var(--p-uranus)"></i>Uranus</td><td class="ms">Voyager 2</td><td>The only spacecraft that has ever visited.</td></tr>
+            <tr><td class="pl"><i style="background:var(--p-neptune)"></i>Neptune</td><td class="ms">Voyager 2</td><td>The only spacecraft that has ever visited.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="way-h">
+      <div class="sec-head" style="margin-bottom:20px">
+        <h2 id="way-h">Still on the way</h2>
+        <p>These spacecraft have launched but haven't finished their trip yet.</p>
+      </div>
+      <div class="way">
+        <article>
+          <div class="meta"><span class="yr">Launched 2018</span><span>ESA &amp; Japan</span></div>
+          <h3>BepiColombo</h3>
+          <p>Two orbiters riding together to Mercury, due to arrive in late 2026 to study its surface and magnetic field.</p>
+        </article>
+        <article>
+          <div class="meta"><span class="yr">Launched 2023</span><span>ESA</span></div>
+          <h3>JUICE</h3>
+          <p>Heading to Jupiter, arriving in 2031, to study the icy moons Ganymede, Callisto and Europa.</p>
+        </article>
+        <article>
+          <div class="meta"><span class="yr">Launched 2024</span><span>NASA</span></div>
+          <h3>Europa Clipper</h3>
+          <p>Arriving at Jupiter in 2030 to find out if the ocean under Europa's ice could support life.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>Facts come from NASA, ESA and JPL mission pages. Find pictures of every spacecraft at <a href="https://science.nasa.gov/solar-system/" target="_blank" rel="noopener">science.nasa.gov</a>.</div>
+  </div>
+</footer>
+
+<script>
+const PLANETS = [
+  {k:"sun", n:"Sun", s:30},
+  {k:"mercury", n:"Mercury", s:9},
+  {k:"venus", n:"Venus", s:14},
+  {k:"earth", n:"Earth", s:15},
+  {k:"mars", n:"Mars", s:11},
+  {k:"jupiter", n:"Jupiter", s:28},
+  {k:"saturn", n:"Saturn", s:25},
+  {k:"uranus", n:"Uranus", s:19},
+  {k:"neptune", n:"Neptune", s:18},
+  {k:"pluto", n:"Pluto", s:7}
+];
+const NAME = Object.fromEntries(PLANETS.map(p => [p.k, p.n]));
+
+const MISSIONS = [
+  {name:"Sputnik 1", year:1957, by:"Soviet Union", to:["earth"], tag:"The first satellite ever.",
+   found:["Proved a human-made object could orbit Earth","Its radio beeps helped scientists study Earth's upper atmosphere","Started the Space Race between the USA and the Soviet Union"],
+   fact:"It was only 58 cm wide, about the size of a beach ball, and went around Earth every 96 minutes."},
+  {name:"Explorer 1", year:1958, by:"USA", to:["earth"], tag:"America's first satellite.",
+   found:["Discovered the Van Allen radiation belts, zones of energy particles trapped around Earth","Showed that Earth's magnetic field protects us from space radiation"],
+   fact:"The belts are named after James Van Allen, the scientist whose instrument detected them."},
+  {name:"Mariner 2", year:1962, by:"NASA", to:["venus"], tag:"The first spacecraft to visit another planet.",
+   found:["Flew past Venus and showed it is scorching hot under its clouds","Measured the solar wind, a stream of particles flowing out from the Sun"],
+   fact:"It passed Venus at about 35,000 km away."},
+  {name:"Venera 7", year:1970, by:"Soviet Union", to:["venus"], tag:"The first landing on another planet.",
+   found:["First spacecraft to land on another planet and send back data","Measured about 475°C on the surface of Venus","Found air pressure about 90 times stronger than Earth's"],
+   fact:"It only survived about 23 minutes on the surface before the heat and pressure won."},
+  {name:"Pioneer 10", year:1972, by:"NASA", to:["jupiter"], tag:"The first to cross the asteroid belt.",
+   found:["First spacecraft to make it through the asteroid belt","First to fly past Jupiter, in 1973","Measured Jupiter's powerful radiation"],
+   fact:"It carries a metal plaque with a drawing of humans, in case aliens ever find it."},
+  {name:"Landsat", year:1972, by:"NASA & USGS", to:["earth"], tag:"A team of satellites watching Earth.",
+   found:["Has photographed all of Earth's land for over 50 years","Shows how forests, glaciers, farms and cities change over time","Helps track wildfires, floods and droughts"],
+   fact:"Landsat 9, launched in 2021, circles Earth about every 99 minutes."},
+  {name:"Mariner 10", year:1973, by:"NASA", to:["venus","mercury"], tag:"The first visit to Mercury.",
+   found:["First spacecraft to visit Mercury, in 1974","Showed Mercury is covered in craters like our Moon","Discovered that Mercury has a magnetic field","First to use one planet's gravity (Venus) to slingshot to another"],
+   fact:"It flew past Mercury three times."},
+  {name:"Pioneer 11", year:1973, by:"NASA", to:["jupiter","saturn"], tag:"The first visit to Saturn.",
+   found:["First spacecraft to fly past Saturn, in 1979","Discovered Saturn's thin F ring","Took close-up pictures of Jupiter's Great Red Spot"],
+   fact:"Its trip to Saturn helped plan the route for the two Voyagers."},
+  {name:"Viking 1", year:1975, by:"NASA", to:["mars"], tag:"The first US landing on Mars.",
+   found:["Landed on Mars in 1976","Took the first color photos from the surface of Mars","Tested the Martian soil for signs of life"],
+   fact:"It was built to work for 90 days but lasted over 6 years."},
+  {name:"Voyager 2", year:1977, by:"NASA", to:["jupiter","saturn","uranus","neptune"], tag:"The only visitor to Uranus and Neptune.",
+   found:["Only spacecraft to visit Uranus (1986) and Neptune (1989)","Discovered 10 new moons around Uranus","Found Neptune's Great Dark Spot, a storm about the size of Earth","Saw geysers on Neptune's moon Triton","Entered interstellar space in 2018"],
+   fact:"It's the only spacecraft that has visited all four giant planets."},
+  {name:"Voyager 1", year:1977, by:"NASA", to:["jupiter","saturn"], tag:"The farthest human-made object.",
+   found:["Discovered active volcanoes on Jupiter's moon Io, the first seen anywhere besides Earth","Found that Saturn's moon Titan has a thick atmosphere","Took the “Pale Blue Dot” photo of Earth from 6 billion km away in 1990","Became the first spacecraft in interstellar space, in 2012"],
+   fact:"It carries a Golden Record with music, greetings and sounds from Earth."},
+  {name:"Galileo", year:1989, by:"NASA", to:["jupiter"], tag:"The first to orbit Jupiter.",
+   found:["Started orbiting Jupiter in 1995","Dropped a probe into Jupiter's atmosphere","Found evidence of a salty ocean under the ice on Europa","Discovered the first moon ever found around an asteroid"],
+   fact:"In 1994, on its way there, it watched pieces of a comet smash into Jupiter."},
+  {name:"Magellan", year:1989, by:"NASA", to:["venus"], tag:"Saw through Venus's clouds.",
+   found:["Used radar to see through Venus's thick clouds","Mapped about 98% of the surface","Showed Venus is covered in volcanoes and lava plains"],
+   fact:"It was the first planet explorer launched from a Space Shuttle."},
+  {name:"Hubble Space Telescope", year:1990, by:"NASA & ESA", to:["earth","jupiter","pluto"], tag:"A telescope orbiting Earth.",
+   found:["Watched comet Shoemaker-Levy 9 crash into Jupiter in 1994","Discovered four of Pluto's five moons","Helped show that the universe is expanding faster and faster"],
+   fact:"It orbits about 540 km above Earth, and astronauts have repaired and upgraded it 5 times."},
+  {name:"Cassini-Huygens", year:1997, by:"NASA, ESA & Italy", to:["saturn"], tag:"13 years exploring Saturn.",
+   found:["Orbited Saturn from 2004 to 2017","Found water geysers shooting from the moon Enceladus","Its Huygens probe landed on Titan in 2005, the farthest landing ever","Found lakes and seas of liquid methane on Titan"],
+   fact:"In 2017 it dove into Saturn on purpose, so it could never crash into a moon that might have life."},
+  {name:"Spirit & Opportunity", year:2003, by:"NASA", to:["mars"], tag:"Twin rovers on Mars.",
+   found:["Found rocks that formed in water, proof Mars was once wet","Opportunity drove over 45 km, longer than a marathon"],
+   fact:"Opportunity was built to last 90 days and kept going for almost 15 years."},
+  {name:"MESSENGER", year:2004, by:"NASA", to:["mercury"], tag:"The first to orbit Mercury.",
+   found:["Orbited Mercury from 2011 to 2015","Mapped the entire planet","Found water ice hiding in shadowed craters at the poles"],
+   fact:"It sent back more than 250,000 pictures."},
+  {name:"New Horizons", year:2006, by:"NASA", to:["pluto"], tag:"The first visit to Pluto.",
+   found:["Flew past Pluto in 2015","Found a giant heart-shaped plain of ice, named Tombaugh Regio after Pluto's discoverer","Found mountains made of water ice","Flew past Arrokoth in 2019, the farthest object ever explored"],
+   fact:"Some of Clyde Tombaugh's ashes are on board."},
+  {name:"Juno", year:2011, by:"NASA", to:["jupiter"], tag:"Looking inside Jupiter.",
+   found:["Arrived at Jupiter on July 4, 2016","Found giant clusters of cyclones at Jupiter's poles","Discovered Jupiter's core is fuzzy and spread out, not a small solid ball"],
+   fact:"It runs on solar power and set the record for the farthest solar-powered spacecraft."},
+  {name:"Curiosity", year:2011, by:"NASA", to:["mars"], tag:"A car-sized rover on Mars.",
+   found:["Landed in Gale Crater in 2012","Found that Mars once had a lake that could have supported tiny life","Found organic molecules, building blocks of life, in Martian rocks"],
+   fact:"It's about the size of a car and runs on a nuclear battery."},
+  {name:"Parker Solar Probe", year:2018, by:"NASA", to:["sun"], tag:"The spacecraft that touched the Sun.",
+   found:["First spacecraft to fly through the Sun's outer atmosphere, the corona, in 2021","Came within about 6.1 million km of the Sun's surface in 2024","Fastest human-made object ever, about 690,000 km/h"],
+   fact:"Its heat shield faces about 1,000°C while the instruments behind it stay near room temperature."},
+  {name:"Perseverance & Ingenuity", year:2020, by:"NASA", to:["mars"], tag:"A rover and a helicopter.",
+   found:["Landed in Jezero Crater, an old lake bed, in 2021","Collecting rock samples that might show signs of ancient life","Made oxygen out of Mars's air with an experiment called MOXIE","Ingenuity made the first powered flight on another planet"],
+   fact:"Ingenuity was planned for 5 flights and ended up making 72."},
+  {name:"James Webb Space Telescope", year:2021, by:"NASA, ESA & Canada", to:["jupiter","uranus","neptune"], tag:"The biggest space telescope.",
+   found:["Took the clearest view of Neptune's rings in over 30 years","Captured Jupiter's auroras and faint rings in infrared light","Helped discover a new moon around Uranus"],
+   fact:"Its 6.5 m mirror is made of 18 gold-coated hexagons, and it sits 1.5 million km from Earth."}
+];
+
+const grid = document.getElementById("grid");
+const strip = document.getElementById("strip");
+const showing = document.getElementById("showing");
+let current = "all";
+try { const saved = localStorage.getItem("sc-filter"); if (saved && (saved === "all" || NAME[saved])) current = saved; } catch (e) {}
+
+function el(tag, attrs, kids){
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs || {})) {
+    if (k === "text") n.textContent = v; else if (k === "style") n.style.cssText = v; else n.setAttribute(k, v);
+  }
+  (kids || []).forEach(c => n.appendChild(c));
+  return n;
+}
+
+function countFor(k){ return k === "all" ? MISSIONS.length : MISSIONS.filter(m => m.to.includes(k)).length; }
+
+function buildStrip(){
+  const allBtn = el("button", {type:"button", class:"pbtn all", "data-k":"all"}, [
+    el("span", {class:"orb", "aria-hidden":"true"}), el("span", {text:"All"}), el("span", {class:"cnt", text: countFor("all")})
+  ]);
+  strip.appendChild(allBtn);
+  PLANETS.forEach(p => {
+    const orb = el("span", {class:"orb", "aria-hidden":"true", style:`width:${p.s}px;height:${p.s}px;background:var(--p-${p.k})` + (p.k==="sun" ? ";box-shadow:0 0 14px 2px rgba(255,181,71,.55)" : "")});
+    const b = el("button", {type:"button", class:"pbtn", "data-k":p.k}, [orb, el("span", {text:p.n}), el("span", {class:"cnt", text: countFor(p.k)})]);
+    strip.appendChild(b);
+  });
+  strip.addEventListener("click", e => {
+    const b = e.target.closest("button[data-k]");
+    if (!b) return;
+    current = b.dataset.k;
+    try { localStorage.setItem("sc-filter", current); } catch (err) {}
+    render();
+  });
+}
+
+function card(m){
+  const chips = el("div", {class:"chips"}, m.to.map(k => el("span", {class:"chip"}, [el("i", {style:`background:var(--p-${k})`, "aria-hidden":"true"}), document.createTextNode(NAME[k])])));
+  const list = el("ul", {}, m.found.map(f => el("li", {text:f})));
+  const fact = el("p", {class:"fact"}, [el("b", {text:"Fun fact: "}), document.createTextNode(m.fact)]);
+  return el("article", {class:"card"}, [
+    el("div", {class:"meta"}, [el("span", {class:"yr", text:"Launched " + m.year}), el("span", {text:m.by})]),
+    el("h3", {text:m.name}),
+    el("p", {class:"tagline", text:m.tag}),
+    chips,
+    el("div", {class:"found"}, [el("h4", {text:"What it discovered"}), list]),
+    fact
+  ]);
+}
+
+function render(){
+  strip.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.k === current)));
+  const list = current === "all" ? MISSIONS : MISSIONS.filter(m => m.to.includes(current));
+  grid.replaceChildren(...list.map(card));
+  showing.innerHTML = "";
+  const n = el("b", {text: String(list.length)});
+  showing.append("Showing ", n, list.length === 1 ? " mission" : " missions", current === "all" ? ", from 1957 to today." : (current === "sun" ? " that studied the Sun." : " that explored " + NAME[current] + "."));
+}
+
+function buildStats(){
+  const stats = [
+    [String(MISSIONS.length), "missions on this page"],
+    ["1957", "first satellite launched"],
+    ["2012", "first spacecraft left the solar system"],
+    ["8 of 8", "planets visited by spacecraft"]
+  ];
+  document.getElementById("stats").replaceChildren(...stats.map(([b,s]) => el("li", {}, [el("b", {text:b}), el("span", {text:s})])));
+}
+
+buildStats();
+buildStrip();
+render();
+</script>
+</body>
+</html>
